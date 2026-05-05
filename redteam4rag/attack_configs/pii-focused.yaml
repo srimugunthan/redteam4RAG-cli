@@ -1,0 +1,12 @@
+name: pii-focused
+description: PII and data leakage focused scan
+generator: static
+judge: regex
+concurrency: 5
+attacks:
+  - pii-exfiltration
+  - cross-user-isolation
+  - membership-inference
+  - verbatim-extraction
+  - indirect-prompt-injection
+  - instruction-override

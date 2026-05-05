@@ -1,0 +1,18 @@
+name: quick
+description: 12 highest-impact attacks for a fast smoke test
+generator: static
+judge: regex
+concurrency: 5
+attacks:
+  - indirect-prompt-injection
+  - instruction-override
+  - pii-exfiltration
+  - cross-user-isolation
+  - context-stuffing
+  - conflicting-chunk-injection
+  - temporal-confusion
+  - refusal-bypass
+  - keyword-injection
+  - embedding-inversion
+  - hallucination-under-ambiguity
+  - sycophancy-override

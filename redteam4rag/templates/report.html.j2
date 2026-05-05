@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RedTeam4RAG Scan Report</title>
+  <style>
+    /* Reset & base */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      font-size: 14px;
+      line-height: 1.6;
+      color: #1a1a1a;
+      background: #f5f5f5;
+      padding: 24px;
+    }
+    h1 { font-size: 1.8rem; margin-bottom: 8px; }
+    h2 { font-size: 1.2rem; margin: 24px 0 12px; color: #333; border-bottom: 1px solid #ddd; padding-bottom: 4px; }
+    .container { max-width: 1100px; margin: 0 auto; background: #fff; border-radius: 8px; padding: 32px; box-shadow: 0 2px 8px rgba(0,0,0,.1); }
+    .meta-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 8px 24px; margin-bottom: 24px; }
+    .meta-item { font-size: 13px; }
+    .meta-label { font-weight: 600; color: #555; }
+    /* Badges */
+    .badges { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 24px; }
+    .badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 4px 12px; border-radius: 999px; font-size: 13px; font-weight: 600; color: #fff;
+    }
+    .badge-critical { background: #dc2626; }
+    .badge-high     { background: #ea580c; }
+    .badge-medium   { background: #ca8a04; }
+    .badge-low      { background: #2563eb; }
+    .badge-info     { background: #6b7280; }
+    .badge-passed   { background: #16a34a; }
+    .badge-errored  { background: #7c3aed; }
+    /* Summary table */
+    table { width: 100%; border-collapse: collapse; margin-bottom: 24px; font-size: 13px; }
+    th, td { text-align: left; padding: 8px 12px; border: 1px solid #e5e7eb; }
+    th { background: #f9fafb; font-weight: 600; }
+    tr:nth-child(even) { background: #f9fafb; }
+    /* Findings */
+    .findings-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 16px; }
+    .findings-table th { background: #f1f5f9; cursor: pointer; user-select: none; }
+    .findings-table th:hover { background: #e2e8f0; }
+    .findings-table td, .findings-table th { padding: 8px 12px; border: 1px solid #e5e7eb; vertical-align: top; }
+    .status-PASSED  { color: #16a34a; font-weight: 600; }
+    .status-FAILED  { color: #dc2626; font-weight: 600; }
+    .status-ERRORED { color: #6b7280; font-weight: 600; }
+    .sev-critical { color: #dc2626; font-weight: 700; }
+    .sev-high     { color: #ea580c; font-weight: 700; }
+    .sev-medium   { color: #ca8a04; font-weight: 700; }
+    .sev-low      { color: #2563eb; font-weight: 700; }
+    .sev-info     { color: #6b7280; font-weight: 700; }
+    /* Details / Summary */
+    details { margin: 4px 0; }
+    summary { cursor: pointer; font-weight: 600; padding: 4px 0; }
+    summary:hover { text-decoration: underline; }
+    .detail-block { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 4px; padding: 12px; margin-top: 8px; font-size: 12px; line-height: 1.5; }
+    .detail-label { font-weight: 600; color: #374151; margin-top: 8px; }
+    .detail-label:first-child { margin-top: 0; }
+    pre { white-space: pre-wrap; word-break: break-word; background: #f1f5f9; padding: 8px; border-radius: 4px; margin: 4px 0; }
+    .chunk-list { list-style: disc; margin-left: 20px; }
+    /* Sort arrow */
+    .sort-icon { font-size: 10px; margin-left: 4px; }
+  </style>
+</head>
+<body>
+<div class="container">
+  <h1>RedTeam4RAG Scan Report</h1>
+
+  <div class="meta-grid">
+    <div class="meta-item"><span class="meta-label">Scan ID:</span> {{ result.metadata.scan_id }}</div>
+    <div class="meta-item"><span class="meta-label">Target:</span> {{ result.metadata.target_url | safeurl }}</div>
+    <div class="meta-item"><span class="meta-label">Suite:</span> {{ result.metadata.suite_name }}</div>
+    <div class="meta-item"><span class="meta-label">Judge:</span> {{ result.metadata.judge }}</div>
+    <div class="meta-item"><span class="meta-label">Generator:</span> {{ result.metadata.generator }}</div>
+    <div class="meta-item"><span class="meta-label">Started:</span> {{ result.metadata.started_at }}</div>
+    <div class="meta-item"><span class="meta-label">Finished:</span> {{ result.metadata.finished_at }}</div>
+    <div class="meta-item"><span class="meta-label">Duration:</span> {{ result.metadata.duration_seconds }}s</div>
+  </div>
+
+  <h2>Severity Overview</h2>
+  <div class="badges">
+    {% set sev_counts = {"critical": 0, "high": 0, "medium": 0, "low": 0, "info": 0} %}
+    {% for r in result.results %}
+      {% if r.status.value == "failed" %}
+        {% if r.severity.value == "critical" %}{% set _ = sev_counts.update({"critical": sev_counts["critical"] + 1}) %}{% endif %}
+        {% if r.severity.value == "high"     %}{% set _ = sev_counts.update({"high":     sev_counts["high"]     + 1}) %}{% endif %}
+        {% if r.severity.value == "medium"   %}{% set _ = sev_counts.update({"medium":   sev_counts["medium"]   + 1}) %}{% endif %}
+        {% if r.severity.value == "low"      %}{% set _ = sev_counts.update({"low":      sev_counts["low"]      + 1}) %}{% endif %}
+        {% if r.severity.value == "info"     %}{% set _ = sev_counts.update({"info":     sev_counts["info"]     + 1}) %}{% endif %}
+      {% endif %}
+    {% endfor %}
+    <span class="badge badge-critical">Critical: {{ summary.by_severity.get("critical", 0) }}</span>
+    <span class="badge badge-high">High: {{ summary.by_severity.get("high", 0) }}</span>
+    <span class="badge badge-medium">Medium: {{ summary.by_severity.get("medium", 0) }}</span>
+    <span class="badge badge-low">Low: {{ summary.by_severity.get("low", 0) }}</span>
+    <span class="badge badge-info">Info: {{ summary.by_severity.get("info", 0) }}</span>
+    <span class="badge badge-passed">Passed: {{ summary.passed }}</span>
+    <span class="badge badge-errored">Errored: {{ summary.errored }}</span>
+  </div>
+
+  <h2>Summary</h2>
+  <table>
+    <thead>
+      <tr><th>Metric</th><th>Count</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Total</td><td>{{ summary.total }}</td></tr>
+      <tr><td>Passed</td><td>{{ summary.passed }}</td></tr>
+      <tr><td>Failed</td><td>{{ summary.failed }}</td></tr>
+      <tr><td>Errored</td><td>{{ summary.errored }}</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Findings</h2>
+  <table class="findings-table" id="findingsTable">
+    <thead>
+      <tr>
+        <th onclick="sortTable(0)">Attack Name <span class="sort-icon">&#x25B4;&#x25BE;</span></th>
+        <th onclick="sortTable(1)">Category <span class="sort-icon">&#x25B4;&#x25BE;</span></th>
+        <th onclick="sortTable(2)">Severity <span class="sort-icon">&#x25B4;&#x25BE;</span></th>
+        <th onclick="sortTable(3)">Status <span class="sort-icon">&#x25B4;&#x25BE;</span></th>
+        <th>Details</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in result.results %}
+      <tr>
+        <td>{{ r.attack_name }}</td>
+        <td>{{ r.category }}</td>
+        <td class="sev-{{ r.severity.value }}">{{ r.severity.value | upper }}</td>
+        <td class="status-{{ r.status.value | upper }}">{{ r.status.value | upper }}</td>
+        <td>
+          <details>
+            <summary>View details</summary>
+            <div class="detail-block">
+              <div class="detail-label">Query</div>
+              <pre>{{ r.query }}</pre>
+
+              {% if r.retrieved_chunks %}
+              <div class="detail-label">Retrieved Chunks ({{ r.retrieved_chunks | length }})</div>
+              <ul class="chunk-list">
+                {% for chunk in r.retrieved_chunks %}
+                <li><pre>{{ chunk }}</pre></li>
+                {% endfor %}
+              </ul>
+              {% else %}
+              <div class="detail-label">Retrieved Chunks</div>
+              <p><em>None</em></p>
+              {% endif %}
+
+              <div class="detail-label">Response</div>
+              <pre>{{ r.response }}</pre>
+
+              <div class="detail-label">Judge Reasoning</div>
+              <pre>{{ r.judge_verdict.reasoning if r.judge_verdict else "N/A" }}</pre>
+
+              {% if r.judge_verdict and r.judge_verdict.confidence is not none %}
+              <div class="detail-label">Judge Confidence</div>
+              <p>{{ r.judge_verdict.confidence }}</p>
+              {% endif %}
+
+              {% if r.evidence %}
+              <div class="detail-label">Evidence</div>
+              <pre>{{ r.evidence }}</pre>
+              {% endif %}
+
+              {% if r.error %}
+              <div class="detail-label">Error</div>
+              <pre style="color:#dc2626;">{{ r.error }}</pre>
+              {% endif %}
+
+              <div class="detail-label">Latency</div>
+              <p>{{ r.latency_ms }}ms</p>
+            </div>
+          </details>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<script>
+  /* Pure inline JS — no external libraries */
+  var sortDir = {};
+  var SEV_ORDER = {critical: 0, high: 1, medium: 2, low: 3, info: 4};
+
+  function sortTable(col) {
+    var table = document.getElementById("findingsTable");
+    var tbody = table.tBodies[0];
+    var rows = Array.prototype.slice.call(tbody.rows);
+    var asc = !sortDir[col];
+    sortDir = {};
+    sortDir[col] = asc;
+
+    rows.sort(function(a, b) {
+      var av = a.cells[col].innerText.trim().toLowerCase();
+      var bv = b.cells[col].innerText.trim().toLowerCase();
+      if (col === 2) {
+        av = SEV_ORDER[av] !== undefined ? SEV_ORDER[av] : 99;
+        bv = SEV_ORDER[bv] !== undefined ? SEV_ORDER[bv] : 99;
+        return asc ? av - bv : bv - av;
+      }
+      if (av < bv) return asc ? -1 : 1;
+      if (av > bv) return asc ? 1 : -1;
+      return 0;
+    });
+
+    rows.forEach(function(r) { tbody.appendChild(r); });
+  }
+</script>
+</body>
+</html>

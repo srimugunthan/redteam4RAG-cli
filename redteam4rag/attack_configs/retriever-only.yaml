@@ -1,0 +1,11 @@
+name: retriever-only
+description: Retriever-layer attacks only
+generator: static
+judge: regex
+concurrency: 5
+attacks:
+  - query-drift
+  - embedding-inversion
+  - keyword-injection
+  - sparse-dense-mismatch
+  - empty-retrieval-probe

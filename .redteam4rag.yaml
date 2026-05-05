@@ -1,0 +1,23 @@
+# .redteam4rag.yaml — project-level defaults for redteam4rag
+# Precedence: CLI flags > this file > built-in defaults > .env
+# All fields are optional. Uncomment and edit to override defaults.
+
+# target_url: ""                  # set here or always pass --target on CLI
+
+attacks_config: quick             # pre-configured: quick | full | retriever-only | pii-focused; or path to YAML
+judge_provider: anthropic         # anthropic | openai | ollama
+judge_model: claude-sonnet-4-6
+
+concurrency: 5
+retry: 2
+timeout_seconds: 30.0
+
+mutation_strategy: static         # static | llm | template
+mutation_count: 0                 # 0 = mutations disabled
+
+output_path: reports/scan         # base path; format extensions appended by CLI
+output_format: json               # json | md | html | all
+fail_on: high                     # exit 1 if any finding severity >= this value
+
+verbose: false
+include_trace: false

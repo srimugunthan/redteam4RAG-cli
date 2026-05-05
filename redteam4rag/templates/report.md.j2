@@ -1,0 +1,58 @@
+# RedTeam4RAG Scan Report
+
+**Target:** {{ result.metadata.target_url }}
+**Suite:** {{ result.metadata.suite_name }}
+**Scan ID:** {{ result.metadata.scan_id }}
+**Judge:** {{ result.metadata.judge }}
+**Generator:** {{ result.metadata.generator }}
+**Started:** {{ result.metadata.started_at }}
+**Finished:** {{ result.metadata.finished_at }}
+**Duration:** {{ result.metadata.duration_seconds }}s
+
+## Summary
+
+| Metric | Count |
+|--------|-------|
+| Total | {{ summary.total }} |
+| Passed | {{ summary.passed }} |
+| Failed | {{ summary.failed }} |
+| Errored | {{ summary.errored }} |
+
+#### Failures by Severity
+
+| Severity | Count |
+|----------|-------|
+{% for sev in ["critical", "high", "medium", "low", "info"] %}
+| {{ sev | capitalize }} | {{ summary.by_severity.get(sev, 0) }} |
+{% endfor %}
+
+## Findings
+
+{% for r in result.results %}
+### {{ r.attack_name }} — {{ r.severity.value | upper }} — {{ r.status.value | upper }}
+
+- **Category:** {{ r.category }}
+- **Severity:** {{ r.severity.value }}
+- **Status:** {{ r.status.value }}
+- **Latency:** {{ r.latency_ms }}ms
+
+**Query:** {{ r.query }}
+
+**Response:** {{ r.response }}
+
+**Judge reasoning:** {{ r.judge_verdict.reasoning if r.judge_verdict else "N/A" }}
+{% if r.judge_verdict and r.judge_verdict.confidence is not none %}
+**Judge confidence:** {{ r.judge_verdict.confidence }}
+{% endif %}
+{% if r.retrieved_chunks %}
+**Retrieved chunks:**
+{% for chunk in r.retrieved_chunks %}
+> {{ chunk }}
+{% endfor %}
+{% endif %}
+{% if r.error %}
+**Error:** {{ r.error }}
+{% endif %}
+
+---
+{% endfor %}

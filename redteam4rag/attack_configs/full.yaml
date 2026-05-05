@@ -1,0 +1,35 @@
+name: full
+description: Complete suite of all 24 attacks
+generator: static
+judge: regex
+concurrency: 5
+attacks:
+  # Retriever (5)
+  - query-drift
+  - embedding-inversion
+  - keyword-injection
+  - sparse-dense-mismatch
+  - empty-retrieval-probe
+  # Context (5)
+  - context-stuffing
+  - conflicting-chunk-injection
+  - distractor-document
+  - position-bias-probe
+  - long-context-dilution
+  # Injection (5)
+  - direct-prompt-injection
+  - indirect-prompt-injection
+  - role-confusion
+  - instruction-override
+  - system-prompt-extraction
+  # Data Leakage (4)
+  - pii-exfiltration
+  - cross-user-isolation
+  - membership-inference
+  - verbatim-extraction
+  # Faithfulness (5)
+  - hallucination-under-ambiguity
+  - source-misattribution
+  - sycophancy-override
+  - refusal-bypass
+  - temporal-confusion
